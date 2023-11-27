@@ -7,12 +7,25 @@ import psycopg2
 class DatabaseConnector:
   '''
   Connect and upload data to the database
+  Attributes:
+    ----------
+
 
   Methods:
     -------
     read_db_creds 
       Read the YAML credentials file into a dictionary
   '''
+  def __init__(self):
+    self.engine = None
+    self.column_dict = None
+
+  def get_engine(self):  
+    return self.engine
+  
+  def get_column_dict(self):
+    return self.column_dict
+
   def read_db_creds(self, yaml_file):
     '''
     Read the YAML credentials file and return a dictionary
@@ -22,16 +35,17 @@ class DatabaseConnector:
     
     return yaml_creds
   
-  def init_db_engine(self,yaml_creds):
+  def init_db_engine(self, yaml_creds):
     '''
     Takes the credentials from the `read_db_creds` method and initalises and 
     returns a sqlalchemy database engine
     '''
     DATABASE_TYPE = 'postgresql'
-    DBAPI = 'psycopg2'
+    DBAPI = 'psycopg2' #Probably not required
     db_string = f"{DATABASE_TYPE}+{DBAPI}://{yaml_creds['RDS_USER']}:{yaml_creds['RDS_PASSWORD']}@{yaml_creds['RDS_HOST']}:{yaml_creds['RDS_PORT']}/{yaml_creds['RDS_DATABASE']}"
     print (db_string)
     db_engine = create_engine(db_string)
+    self.engine = db_engine
     return db_engine
   
   def list_db_tables(self, db_engine):
@@ -39,15 +53,26 @@ class DatabaseConnector:
     Lists all the tables in the database to extract data from 
     '''
     db_table_list = []
+    db_column_dict = {}
+    
     inspector = inspect(db_engine)
 
     for table_name in inspector.get_table_names():
+      db_table_list.append(table_name)
+      #print("Table: %s" % table_name)
       for column in inspector.get_columns(table_name):
-        db_table_list.append(column['name'])
-        print("Column: %s" % column['name'])
+        db_column_dict.setdefault(table_name, []).append(column['name']) 
+        #print("Column: %s" % column['name'])
 
     print(db_table_list)
+    print(db_column_dict)
+    self.column_dict = db_column_dict
     return db_table_list    
+ 
+  def upload_to_db(self, pd_df, table_name):
+    '''
+    Takes a pandas data frame and a table name as arguments to upload to a data base
+    '''
 
 if __name__ == '__main__':
   d_b = DatabaseConnector()
