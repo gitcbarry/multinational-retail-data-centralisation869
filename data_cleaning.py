@@ -88,7 +88,7 @@ class DataCleaning:
     print("Starting Card Data Cleaning: \n")
   
     # Concatenate the list of DataFrames
-    df = pd.concat(dfs)
+    
     print(df.size)
     df.info()
     print(df.head(5))
