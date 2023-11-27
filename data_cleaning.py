@@ -81,7 +81,46 @@ class DataCleaning:
     print("\nEND\n")
     db_df.info()
 
-  def clean_card_data(self, db_df):
+  def clean_card_data(self, df):
     '''
     Clean the card user data imported from pdf
     '''
+    print("Starting Card Data Cleaning: \n")
+  
+    # Concatenate the list of DataFrames
+    df = pd.concat(dfs)
+    print(df.size)
+    df.info()
+    print(df.head(5))
+    
+    # Drop columns which weren't read correctly
+    print(df["card_number expiry_date"])
+    df = df.drop("card_number expiry_date",axis=1)
+    df.head(5)
+    print(df["Unnamed: 0"])
+    df = df.drop("Unnamed: 0",axis=1)
+    
+    # Remove all rows with the string "NULL" in them 
+    print(df[df["card_provider"] == "NULL"])
+    df.drop(index=df[df['card_provider'].str.contains('NULL')].index, inplace=True) 
+    
+    # Replace rows which contain card providers which aren't a name
+    regex_cc = '[A-Z0-9]{6,}'    
+    print(df.loc[df['card_provider'].str.match(regex_cc)])
+    df.drop(index=df[df['card_provider'].str.match(regex_cc)].index, inplace=True) 
+    df['expiry_date'].value_counts(dropna=False)
+   
+    # Set the type
+    df['date_payment_confirmed'] = pd.to_datetime(df['date_payment_confirmed'],format='mixed')
+    df.info()
+    df.head()
+    df[df["expiry_date"].isnull()]
+    df.dropna(inplace=True)
+    df.info()
+    # Change to a numeric type 
+    df['card_number'] = pd.to_numeric(df['card_number'], errors="coerce", downcast="integer")
+    #df[df["card_number"] < 1e10]
+    # Drop the NaN values
+    df.dropna(inplace=True)
+
+    df.info()
