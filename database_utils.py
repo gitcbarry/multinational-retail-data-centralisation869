@@ -8,11 +8,10 @@ class DatabaseConnector:
   '''
   Connect and upload data to the database
   Attributes:
-    ----------
-
-
+  ----------
+    
   Methods:
-    -------
+  -------
     read_db_creds 
       Read the YAML credentials file into a dictionary
   '''
@@ -20,7 +19,8 @@ class DatabaseConnector:
     self.engine = None
     self.column_dict = None
 
-  def get_engine(self):  
+  def get_engine(self): 
+    # Add some error handling 
     return self.engine
   
   def get_column_dict(self):
@@ -69,10 +69,11 @@ class DatabaseConnector:
     self.column_dict = db_column_dict
     return db_table_list    
  
-  def upload_to_db(self, pd_df, table_name):
+  def upload_to_db(self, pd_df, table_name, engine):
     '''
     Takes a pandas data frame and a table name as arguments to upload to a data base
     '''
+    pd_df.to_sql(name=table_name, con=engine, if_exists='replace')
 
 if __name__ == '__main__':
   d_b = DatabaseConnector()
