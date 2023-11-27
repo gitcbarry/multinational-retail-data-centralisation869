@@ -21,12 +21,17 @@ class DataExtractor:
     '''
     Read pdf data from an Amazon S3 bucket and returns a pandas dataframe
     '''  
+    print("Getting and reading Card Details:")
     pdf_path = "https://data-handling-public.s3.eu-west-1.amazonaws.com/card_details.pdf"
   
     dfs = tabula.read_pdf(pdf_path, stream=True, pages='all')
     print(len(dfs))
     print(dfs[0].head(5))
-    return dfs
+ 
+    print(df.size)
+    # Join the list of dataframes returned by tabula
+    df = pd.concat(dfs)  
+    return df
 
 if __name__ == '__main__':
   
