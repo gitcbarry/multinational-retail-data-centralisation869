@@ -88,17 +88,17 @@ class DataCleaning:
     print("Starting Card Data Cleaning: \n")
   
     # Concatenate the list of DataFrames
-    
+   
     print(df.size)
     df.info()
     print(df.head(5))
     
     # Drop columns which weren't read correctly
     print(df["card_number expiry_date"])
-    df = df.drop("card_number expiry_date",axis=1)
-    df.head(5)
+    df.drop("card_number expiry_date",axis=1, inplace=True)
+    
     print(df["Unnamed: 0"])
-    df = df.drop("Unnamed: 0",axis=1)
+    df.drop("Unnamed: 0",axis=1, inplace=True)
     
     # Remove all rows with the string "NULL" in them 
     print(df[df["card_provider"] == "NULL"])
