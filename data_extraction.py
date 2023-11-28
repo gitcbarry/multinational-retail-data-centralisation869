@@ -2,6 +2,7 @@ from database_utils import DatabaseConnector
 from data_cleaning import DataCleaning 
 import pandas as pd
 import tabula 
+import requests, json
 
 class DataExtractor:
   '''
@@ -28,13 +29,50 @@ class DataExtractor:
     print(len(dfs))
     print(dfs[0].head(5))
  
-    print(df.size)
     # Join the list of dataframes returned by tabula
     df = pd.concat(dfs)  
     return df
+  
+  def list_number_of_stores(self):
+    '''
+    Returns the number of stores to extract
+    '''
+    header_key = "x-api-key"
+    header_val = "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"
+    header_dict = {header_key: header_val}
+
+    n_stores_url = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/number_stores/"
+    
+    response = requests.get(n_stores_url, headers=header_dict) 
+    repos = response.json()
+    for repo in repos:
+      print(repo)
+
+    print("Number of stores", repos["number_stores"])
+    n_stores = repos["number_stores"]
+    return n_stores
+
+  def retrieve_stores_data(self, n_stores):
+    '''
+    Extract store data
+    '''  
+    header_key = "x-api-key"
+    header_val = "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"
+    header_dict = {header_key: header_val}
+
+    store_url = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/"
+    #n_stores = self.list_number_of_stores
+    for i in range(1,(n_stores)):
+      response = requests.get(store_url+str(i), headers=header_dict)
+      repos = response.json()
+    #for repo in repos:
+    #  print(repo)
+      print("Index:", repos["address"], "\n")
+
+
 
 if __name__ == '__main__':
-  
+  ''' 
   db_conn = DatabaseConnector()
   yaml_creds = db_conn.read_db_creds("db_creds.yaml")
   engine = db_conn.init_db_engine(yaml_creds)
@@ -53,8 +91,12 @@ if __name__ == '__main__':
   local_db_engine = db_conn.init_db_engine(local_creds)
   db_conn.upload_to_db(db_df, "dim_users", local_db_engine)
   
-  #d_ext = DataExtractor()
+
   df_card = d_ext.retrieve_pdf_data()
   d_clean.clean_card_data(df_card)
   db_conn.upload_to_db(df_card, "dim_card_details", local_db_engine)
-
+  '''
+  d_ext = DataExtractor()
+  n_stores = d_ext.list_number_of_stores()
+  d_ext.retrieve_stores_data(n_stores)
+  
