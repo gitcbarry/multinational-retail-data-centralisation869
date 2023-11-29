@@ -114,5 +114,16 @@ if __name__ == '__main__':
   '''
   d_ext = DataExtractor()
   n_stores = d_ext.list_number_of_stores()
-  d_ext.retrieve_stores_data(n_stores)
+  api_df = d_ext.retrieve_stores_data(n_stores)
+
+  d_clean = DataCleaning()
+  d_clean.called_clean_store_data(api_df)
+
+  db_conn = DatabaseConnector()
+  local_creds = db_conn.read_db_creds("db_local.yaml")
+  local_db_engine = db_conn.init_db_engine(local_creds)
+  db_conn.upload_to_db(api_df, "dim_store_details", local_db_engine)
+
+
+
   
