@@ -130,7 +130,6 @@ class DataCleaning:
     Cleans the data from the DataExtraction retrieve_stores_data method
     '''
     print("Cleaning data from retrieve_stores_data method")
-    print(api_df.head(5))
     print(api_df.info())
     print(api_df["lat"][api_df["lat"].notnull()])
     api_df.drop("lat",axis=1, inplace=True)
