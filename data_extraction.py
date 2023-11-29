@@ -59,16 +59,32 @@ class DataExtractor:
     header_key = "x-api-key"
     header_val = "yFBQbwXe9J3sd6zWVAMrK6lcxxr0q1lr2PT6DDMX"
     header_dict = {header_key: header_val}
-
     store_url = "https://aqj7u5id95.execute-api.eu-west-1.amazonaws.com/prod/store_details/"
+
+    response = requests.get(store_url+"1", headers=header_dict)
+    repos = response.json()
+   
+    for repo in repos:
+      print(repo)
+
     #n_stores = self.list_number_of_stores
-    for i in range(1,(n_stores)):
+    entry_all = []
+    for i in range(1,n_stores):
       response = requests.get(store_url+str(i), headers=header_dict)
       repos = response.json()
-    #for repo in repos:
-    #  print(repo)
-      print("Index:", repos["address"], "\n")
-
+      entry_list = []
+      for repo in repos:
+        entry = repos[repo]
+        entry_list.append(entry)
+      entry_all.append(entry_list)
+      #print("Index:", repos["index"], "\n")
+    
+    #print(entry_all) 
+    # More efficient to make the dataframe here rather than in the loop
+    api_df = pd.DataFrame(entry_all, columns=repos)
+    print("dataframe \n")
+    print(api_df.head(5))
+    print(api_df.info())
 
 
 if __name__ == '__main__':
