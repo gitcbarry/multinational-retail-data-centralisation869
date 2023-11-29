@@ -124,3 +124,26 @@ class DataCleaning:
     df.dropna(inplace=True)
 
     df.info()
+
+  def called_clean_store_data(self, api_df):
+    '''
+    Cleans the data from the DataExtraction retrieve_stores_data method
+    '''
+    print("Cleaning data from retrieve_stores_data method")
+    print(api_df.head(5))
+    print(api_df.info())
+    print(api_df["lat"][api_df["lat"].notnull()])
+    api_df.drop("lat",axis=1, inplace=True)
+
+    regex_cc = '[A-Z0-9]{4,}'
+    print(api_df.loc[api_df['country_code'].str.match(regex_cc)])
+    api_df.drop(index=api_df[api_df['country_code'].str.match(regex_cc)].index, inplace=True)
+    
+    api_df['continent'].replace("eeEurope", "Europe", inplace=True)
+    api_df['continent'].replace("eeAmerica", "America", inplace=True)
+
+    api_df['opening_date'] = pd.to_datetime(api_df['opening_date'],format='mixed')
+    print(api_df["opening_date"].value_counts().to_string())
+    api_df.info()
+
+    return api_df
