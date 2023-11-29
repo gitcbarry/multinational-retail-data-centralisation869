@@ -83,8 +83,9 @@ class DataExtractor:
     # More efficient to make the dataframe here rather than in the loop
     api_df = pd.DataFrame(entry_all, columns=repos)
     print("dataframe \n")
-    print(api_df.head(5))
     print(api_df.info())
+    
+    return api_df
 
 
 if __name__ == '__main__':
