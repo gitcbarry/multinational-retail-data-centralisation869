@@ -146,3 +146,50 @@ class DataCleaning:
     api_df.info()
 
     return api_df
+
+  def convert_product_weights(self, df):
+    '''
+    Convert the product weights to kg 
+    removes the n times of the product weight
+    '''
+    df.dropna(inplace=True)
+    df_weight = df["weight"].str.extract(r'[\dx .]*?([\d.]+)([kgmloz]+$)')
+    units = {'g': 1e-3, 'oz': 0.0283495, 'ml': 1e-3, 'kg': 1}
+    #df_weight[1].str.lower().map(units)
+    df_weight[0] = pd.to_numeric(df_weight[0])
+    df_weight[0] *= df_weight[1].str.lower().map(units)
+    df["weight"] = df_weight[0]
+    df.rename(columns={'weight':"weight_kg"}, inplace=True)
+    df.dropna(inplace=True)
+
+
+  def clean_products_data(self,df):
+    '''
+    Clean the products data
+    ''' 
+    df.drop(index=df[df['category'].str.match(r'[0-9A-Z]+')].index, inplace=True)
+    df["removed"] = df["removed"].replace("Still_avaliable", "Still_available")
+    # Convert to datetime format
+    df["date_added"] = pd.to_datetime(df['date_added'],format='mixed')  
+    # Floating point arithmetic issue some values get additional digits
+    # 1.65 goes to 1.6500000000000001
+
+  def clean_orders_data(self, db_df):
+    '''
+    Clean the orders 
+    '''
+    db_df.drop("first_name",axis=1, inplace=True)
+    db_df.drop("last_name",axis=1, inplace=True)
+    db_df.drop("1",axis=1, inplace=True)
+    # Error if not removed
+    db_df.drop("level_0",axis=1, inplace=True)
+    return db_df
+  
+  def clean_date_events_data(self, df):
+    '''
+    Clean date events data
+    '''
+    df.drop(index=df[df['time_period'].str.contains('NULL')].index, inplace=True) 
+    regex_cc = '[A-Z0-9]{6,}' 
+    df.drop(index=df[df['time_period'].str.match(regex_cc)].index, inplace=True) 
+  
