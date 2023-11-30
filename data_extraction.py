@@ -3,6 +3,10 @@ from data_cleaning import DataCleaning
 import pandas as pd
 import tabula 
 import requests, json
+import boto3
+from botocore.exceptions import NoCredentialsError, ClientError
+import json
+from io import StringIO
 
 class DataExtractor:
   '''
@@ -84,46 +88,115 @@ class DataExtractor:
     api_df = pd.DataFrame(entry_all, columns=repos)
     print("dataframe \n")
     print(api_df.info())
-    
+
     return api_df
+
+  def extract_from_s3(self):
+    '''
+    use boto3 package to download and extract the information returning a pandas DataFrame
+    '''
+    s3_url = "s3://data-handling-public/products.csv"
+    try:
+      # Boto3 code that may raise exceptions
+      df = pd.read_csv(s3_url)
+      #s3 = boto3.client('s3')
+      #response = s3.list_buckets()
+      
+      # Process the response or perform other operations
+      #print(response)
+      
+      #my_bucket = s3.Bucket('a-bucket-for-testing-purposes')
+      #for my_bucket_object in my_bucket.objects.all():
+
+      #s3.delete_object(Bucket='a-bucket-for-testing-purposes', Key='within_tent.jpg')
+      print(df)
+      return df
+
+    except NoCredentialsError:
+        print("AWS credentials not found. Please configure your credentials.")
+
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'NoSuchBucket':
+            print("The specified bucket does not exist.")
+        else:
+            print("An error occurred:", e)
+
+  def retrieve_date_events_data(self):            
+    '''
+    Get the date events JSON user data
+    '''
+    json_url = "https://data-handling-public.s3.eu-west-1.amazonaws.com/date_details.json"
+
+    df = pd.read_json(json_url)
+
+    #json_data = pd.json_normalize(myjson['data'])
+    #df = pd.DataFrame(data=reff)
+    return df
 
 
 if __name__ == '__main__':
-  ''' 
+
+  d_clean = DataCleaning()
   db_conn = DatabaseConnector()
+  d_ext = DataExtractor()
+
   yaml_creds = db_conn.read_db_creds("db_creds.yaml")
   engine = db_conn.init_db_engine(yaml_creds)
+  
+  local_creds = db_conn.read_db_creds("db_local.yaml")
+  local_db_engine = db_conn.init_db_engine(local_creds)
+  ''' 
+
+
   table_list = db_conn.list_db_tables(engine)
 
   print(table_list[1])
-  d_ext = DataExtractor()
+
   db_df = d_ext.read_rds_table(db_conn, table_list[1])
   print(db_df.head(5))
   print(db_df.info())
 
-  d_clean = DataCleaning()
   d_clean.clean_user_data(db_df)
 
-  local_creds = db_conn.read_db_creds("db_local.yaml")
-  local_db_engine = db_conn.init_db_engine(local_creds)
   db_conn.upload_to_db(db_df, "dim_users", local_db_engine)
   
-
   df_card = d_ext.retrieve_pdf_data()
   d_clean.clean_card_data(df_card)
   db_conn.upload_to_db(df_card, "dim_card_details", local_db_engine)
   '''
-  d_ext = DataExtractor()
+  '''
   n_stores = d_ext.list_number_of_stores()
   api_df = d_ext.retrieve_stores_data(n_stores)
 
-  d_clean = DataCleaning()
   d_clean.called_clean_store_data(api_df)
 
-  db_conn = DatabaseConnector()
-  local_creds = db_conn.read_db_creds("db_local.yaml")
-  local_db_engine = db_conn.init_db_engine(local_creds)
   db_conn.upload_to_db(api_df, "dim_store_details", local_db_engine)
+  '''
+
+  '''
+  s3_df = d_ext.extract_from_s3()
+
+  d_clean.convert_product_weights(s3_df)
+  d_clean.clean_products_data(s3_df)
+
+  db_conn.upload_to_db(s3_df, "dim_products", local_db_engine)
+  '''
+
+  '''  
+  table_list = db_conn.list_db_tables(engine)
+
+  db_df = d_ext.read_rds_table(db_conn, table_list[2])
+
+  print("Clean Data")
+
+  d_clean.clean_orders_data(db_df)
+  
+  db_conn.upload_to_db(db_df, "orders_table", local_db_engine)
+  '''
+
+  df = d_ext.retrieve_date_events_data()
+  d_clean.clean_date_events_data(df)
+  db_conn.upload_to_db(df, "dim_date_times", local_db_engine)
 
 
 
