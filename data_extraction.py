@@ -159,10 +159,11 @@ if __name__ == '__main__':
   d_clean.clean_user_data(db_df)
 
   db_conn.upload_to_db(db_df, "dim_users", local_db_engine)
-  
+  '''
   df_card = d_ext.retrieve_pdf_data()
   d_clean.clean_card_data(df_card)
   db_conn.upload_to_db(df_card, "dim_card_details", local_db_engine)
+  '''
   '''
   '''
   n_stores = d_ext.list_number_of_stores()
@@ -193,11 +194,11 @@ if __name__ == '__main__':
   
   db_conn.upload_to_db(db_df, "orders_table", local_db_engine)
   '''
-
+  '''
   df = d_ext.retrieve_date_events_data()
   d_clean.clean_date_events_data(df)
   db_conn.upload_to_db(df, "dim_date_times", local_db_engine)
-
+  '''
 
 
   
