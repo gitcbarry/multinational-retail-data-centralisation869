@@ -68,12 +68,14 @@ class DataExtractor:
     response = requests.get(store_url+"1", headers=header_dict)
     repos = response.json()
    
+    
     for repo in repos:
       print(repo)
-
+    print("Getting store data: ")
     #n_stores = self.list_number_of_stores
     entry_all = []
-    for i in range(1,n_stores):
+    for i in range(0,n_stores):
+      print("Getting ith", i, "entry")
       response = requests.get(store_url+str(i), headers=header_dict)
       repos = response.json()
       entry_list = []
@@ -159,19 +161,21 @@ if __name__ == '__main__':
   d_clean.clean_user_data(db_df)
 
   db_conn.upload_to_db(db_df, "dim_users", local_db_engine)
-  '''
+
   df_card = d_ext.retrieve_pdf_data()
   d_clean.clean_card_data(df_card)
   db_conn.upload_to_db(df_card, "dim_card_details", local_db_engine)
+
   '''
   '''
   '''
   n_stores = d_ext.list_number_of_stores()
   api_df = d_ext.retrieve_stores_data(n_stores)
 
-  d_clean.called_clean_store_data(api_df)
+  d_clean.clean_store_data(api_df)
 
-  db_conn.upload_to_db(api_df, "dim_store_details", local_db_engine)
+  #db_conn.upload_to_db(api_df, "dim_store_details", local_db_engine)
+  '''
   '''
 
   '''
