@@ -1,21 +1,17 @@
--- Task 1 -- DONE Incorrect values by a few
--- Query the database to find out which months have produced the most sales.
+-- Task 1 -- DONE Incorrect values by a one (one GB is a web store)
+-- The Operations team would like to know which countries we currently operate in and which country now has the most stores. 
+-- Perform a query on the database to get the information, it should return the following information:
 -- +----------+-----------------+
--- | country  | total_no_stores |
+-- | country  | total_no_stores |  country_code | total_no_stores
+-- +----------+-----------------+ --------------+----------------
+-- | GB       |             265 |  GB           |             266
+-- | DE       |             141 |  DE           |             141
+-- | US       |              34 |  US           |              34
 -- +----------+-----------------+
--- | GB       |             265 |
--- | DE       |             141 |
--- | US       |              34 |
--- +----------+-----------------+
-
--- country_code | total_no_stores
-----------------+-----------------
--- GB           |             263
--- DE           |             139
--- US           |              33
 
 SELECT "country_code", COUNT(*) AS "total_no_stores"
 FROM "dim_store_details"
+WHERE "store_code" NOT LIKE 'WEB%'
 GROUP BY "country_code"
 ORDER BY "total_no_stores" desc; 
 --SELECT "country", COUNT(*) AS "total_no_stores"  FROM "dim_users" GROUP BY "country" ORDER BY "total_no_stores" desc; 
@@ -40,19 +36,20 @@ ORDER BY "total_no_stores" desc
 FETCH FIRST 7 ROWS ONLY; 
 
 
--- Task 3 -- DONE values not quite right
+-- Task 3 -- DONE (values not quite right -- fixed tables values correct )
 -- Which months have produced the most sales.
 -- +-------------+-------+
--- | total_sales | month |
+-- | total_sales | month |  total_sale_price | month 
+-- +-------------+-------+ ------------------+-------
+-- |   673295.68 |     8 |         673295.68 | 8     
+-- |   668041.45 |     1 |         668041.45 | 1     
+-- |   657335.84 |    10 |         657335.84 | 10    
+-- |   650321.43 |     5 |         650321.43 | 5     
+-- |   645741.70 |     7 |         645741.70 | 7     
+-- |   645463.00 |     3 |         645463.00 | 3     
 -- +-------------+-------+
--- |   673295.68 |     8 |
--- |   668041.45 |     1 |
--- |   657335.84 |    10 |
--- |   650321.43 |     5 |
--- |   645741.70 |     7 |
--- |   645463.00 |     3 |
--- +-------------+-------+
-SELECT  sum(orders_table.product_quantity * dim_products.product_price) AS "total_sale_price",
+
+SELECT  ROUND(SUM(orders_table.product_quantity * dim_products.product_price)::numeric,2) AS "total_sale_price",
         dim_date_times.month
 FROM orders_table
 INNER JOIN 
@@ -100,17 +97,16 @@ UNION
 SELECT offline_total_sales AS numbers_of_sales, offline_total_product AS product_quantity_count, location
 FROM offline_product_num;
 
-
--- Task 5 -- DONE (what a nightmare) numbers slightly off
+-- Task 5 -- DONE (what a nightmare) numbers slightly off (percentages incorrect on table -- numbers match)
 -- The sales team wants to know which of the different store types is generated the most revenue so they know where to focus.
 -- +-------------+-------------+---------------------+
--- | store_type  | total_sales | percentage_total(%) |
--- +-------------+-------------+---------------------+
--- | Local       |  3440896.52 |               44.87 |
--- | Web portal  |  1726547.05 |               22.44 |
--- | Super Store |  1224293.65 |               15.63 |
--- | Mall Kiosk  |   698791.61 |                8.96 |
--- | Outlet      |   631804.81 |                8.10 |
+-- | store_type  | total_sales | percentage_total(%) |  store_type  |   round    | percent
+-- +-------------+-------------+---------------------+ -------------+------------+--------
+-- | Local       |  3440896.52 |               44.87 |  Local       | 3440896.52 |   44.56
+-- | Web portal  |  1726547.05 |               22.44 |  Web Portal  | 1726547.05 |   22.36
+-- | Super Store |  1224293.65 |               15.63 |  Super Store | 1224293.65 |   15.85
+-- | Mall Kiosk  |   698791.61 |                8.96 |  Mall Kiosk  |  698791.61 |    9.05
+-- | Outlet      |   631804.81 |                8.10 |  Outlet      |  631804.81 |    8.18
 -- +-------------+-------------+---------------------+
 
 WITH 
@@ -124,46 +120,33 @@ AS ( SELECT
         dim_products ON dim_products.product_code = orders_table.product_code
     GROUP BY "store_type"
     ),
-web_sales 
-AS ( SELECT 
-    'Web portal' AS store_type, sum(orders_table.product_quantity * dim_products.product_price) AS web_total_sales
-    FROM orders_table 
-    INNER JOIN
-    dim_products ON orders_table.product_code = dim_products.product_code 
-    WHERE store_code LIKE 'WEB%'  
-    GROUP BY store_type
-    ),
 sales_table 
 AS ( 
     SELECT store_sales."store_type" AS store_type, total_sales AS total_sales
     FROM store_sales
-    UNION
-    SELECT web_sales.store_type, web_total_sales
-    FROM web_sales
     )
-SELECT store_type, ROUND(total_sales::numeric,0), 
+SELECT store_type, ROUND(total_sales::numeric,2), 
         ROUND((100 * total_sales / SUM(total_sales) OVER ())::numeric,2) AS percent
 FROM sales_table
 ORDER BY percent DESC;
 
 
--- Task 6 -- DONE something not quite right with the data possibly
+-- Task 6 -- DONE (something not quite right with the data possibly -- fixed)
 -- Which month in which year produced the highest sales
 -- +-------------+------+-------+  
--- | total_sales | year | month |  total_sales | year | month  
--- +-------------+------+-------+ -------------+------+------- -
--- |    27936.77 | 1994 |     3 |     27936.77 | 1994 | 3  
--- |    27356.14 | 2019 |     1 |     27356.14 | 2019 | 1  
--- |    27091.67 | 2009 |     8 |     27091.67 | 2009 | 8  
--- |    26679.98 | 1997 |    11 |     26679.98 | 1997 | 11  
--- |    26310.97 | 2018 |    12 |     26310.97 | 2018 | 12  
--- |    26277.72 | 2019 |     8 |     26276.72 | 2019 | 8  
--- |    26236.67 | 2017 |     9 |     26236.67 | 2017 | 9  
--- |    25798.12 | 2010 |     5 |     25798.12 | 2010 | 5  
--- |    25648.29 | 1996 |     8 |     25648.29 | 1996 | 8  
--- |    25614.54 | 2000 |     1 |     25610.54 | 2000 | 1  
+-- | total_sales | year | month |   total_sales | year | month
+-- +-------------+------+-------+  -------------+------+------
+-- |    27936.77 | 1994 |     3 |      27936.77 | 1994 | 3
+-- |    27356.14 | 2019 |     1 |      27356.14 | 2019 | 1
+-- |    27091.67 | 2009 |     8 |      27091.67 | 2009 | 8
+-- |    26679.98 | 1997 |    11 |      26679.98 | 1997 | 11
+-- |    26310.97 | 2018 |    12 |      26310.97 | 2018 | 12
+-- |    26277.72 | 2019 |     8 |      26277.72 | 2019 | 8
+-- |    26236.67 | 2017 |     9 |      26236.67 | 2017 | 9
+-- |    25798.12 | 2010 |     5 |      25798.12 | 2010 | 5
+-- |    25648.29 | 1996 |     8 |      25648.29 | 1996 | 8
+-- |    25614.54 | 2000 |     1 |      25614.54 | 2000 | 1
 -- +-------------+------+-------+  
-
 
 SELECT  ROUND(SUM(orders_table.product_quantity * dim_products.product_price)::numeric,2) AS "total_sales",
         dim_date_times.year,
@@ -181,11 +164,11 @@ FETCH FIRST 10 ROWS ONLY;
 -- Task 7 -- DONE but data not right?
 -- What is our staff headcount
 -- +---------------------+--------------+
--- | total_staff_numbers | country_code |
--- +---------------------+--------------+
--- |               13307 | GB           |
--- |                6123 | DE           |
--- |                1384 | US           |
+-- | total_staff_numbers | country_code |  total_staff_numbers | country_code
+-- +---------------------+--------------+ ---------------------+--------------
+-- |               13307 | GB           |                13307 | GB
+-- |                6123 | DE           |                 6123 | DE
+-- |                1384 | US           |                 1384 | US
 -- +---------------------+--------------+
 
 SELECT sum(staff_numbers) AS "total_staff_numbers", "country_code"
@@ -193,15 +176,15 @@ FROM dim_store_details
 GROUP BY "country_code"
 ORDER BY "total_staff_numbers" DESC;
 
--- Task 8 -- DONE but data not right (numbers don't match)
+-- Task 8 -- DONE but data not right (numbers don't match) (Now matching)
 -- Which German store type is selling the most
 -- +--------------+-------------+--------------+
--- | total_sales  | store_type  | country_code | total_sales | store_type  | country_code
--- +--------------+-------------+--------------+-------------+-------------+--------------
--- |   198373.57  | Outlet      | DE           |   198370.57 | Outlet      | DE
--- |   247634.20  | Mall Kiosk  | DE           |   247630.20 | Mall Kiosk  | DE
--- |   384625.03  | Super Store | DE           |   384591.03 | Super Store | DE
--- |  1109909.59  | Local       | DE           |  1083802.16 | Local       | DE
+-- | total_sales  | store_type  | country_code |  total_sales | store_type  | country_code
+-- +--------------+-------------+--------------+--------------+-------------+--------------
+-- |   198373.57  | Outlet      | DE           |    198373.57 | Outlet      | DE
+-- |   247634.20  | Mall Kiosk  | DE           |    247634.20 | Mall Kiosk  | DE
+-- |   384625.03  | Super Store | DE           |    384625.03 | Super Store | DE
+-- |  1109909.59  | Local       | DE           |   1109909.59 | Local       | DE
 -- +--------------+-------------+--------------+
 
 SELECT  ROUND(SUM(orders_table.product_quantity * dim_products.product_price)::numeric,2) AS "total_sales",
@@ -247,36 +230,5 @@ FROM time_diff
 GROUP BY "year"
 ORDER BY actual_time_taken DESC
 FETCH FIRST 5 ROWS ONLY;
-
---GROUP BY "year", "month", "day", "timestamp"
---ORDER BY actual_time_taken DESC --MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time DESC
-
-
-SELECT 
-    --TO_TIMESTAMP(timestamp, 'HH24:MI:SS'),
-    --make_timestamp("year"::int, "month"::int, "day"::int, 
-                           -- date_part('hour', "timestamp"::time), date_part('minute',  "timestamp"::time), date_part('second', "timestamp"::time)) AS timing,
-    --(MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time) AS timing_col, -- 'DDMMYYY'),
-    --LEAD(MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time,1) 
-    --    OVER (ORDER BY (MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time)) - 
-    --    MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time
-    (MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time) 
-        -LAG(MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time)
-        OVER (ORDER BY (MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time)) AS actual_time_taken, 
-    --TIMESTAMP(day month year, timestamp),
-    --day,
-    --month,
-    year
-    --time_period,
-    --"timestamp",
-    --date_uuid
-FROM
-    dim_date_times
-GROUP BY "year", "month", "day", "timestamp"
-ORDER BY actual_time_taken DESC --MAKE_DATE("year"::int, "month"::int,"day"::INT) + "timestamp"::time DESC
-
-
-
-
 
 
