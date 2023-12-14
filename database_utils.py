@@ -6,25 +6,21 @@ import psycopg2
 
 class DatabaseConnector:
   '''
-  Connect and upload data to the database
+  Connect and upload data to a database using sqlalchemy and reading credentials from a YAML file
   Attributes:
   ----------
     
   Methods:
   -------
     read_db_creds 
-      Read the YAML credentials file into a dictionary
+      Read the YAML credentials file and return a dictionary
+    init_db_engine(yaml_dict)
+      Initalise a database engine from theh YAML credentials returned form read_db_creds
+    list_db_tables: database engine
+      List the tables available in the database 
+    upload_to_db: dataframe, table_name, engine
+      Upload the pandas dataframe to a database specified in the engine with a particular table name
   '''
-  def __init__(self):
-    self.engine = None
-    self.column_dict = None
-
-  def get_engine(self): 
-    # Add some error handling 
-    return self.engine
-  
-  def get_column_dict(self):
-    return self.column_dict
 
   def read_db_creds(self, yaml_file):
     '''
@@ -45,12 +41,11 @@ class DatabaseConnector:
     db_string = f"{DATABASE_TYPE}+{DBAPI}://{yaml_creds['RDS_USER']}:{yaml_creds['RDS_PASSWORD']}@{yaml_creds['RDS_HOST']}:{yaml_creds['RDS_PORT']}/{yaml_creds['RDS_DATABASE']}"
     print (db_string)
     db_engine = create_engine(db_string)
-    self.engine = db_engine
     return db_engine
   
   def list_db_tables(self, db_engine):
     '''
-    Lists all the tables in the database to extract data from 
+    Lists all the tables in the database to extract data from and returns the list
     '''
     db_table_list = []
     db_column_dict = {}
@@ -74,9 +69,3 @@ class DatabaseConnector:
     Takes a pandas data frame and a table name as arguments to upload to a data base
     '''
     pd_df.to_sql(name=table_name, con=engine, if_exists='replace')
-
-if __name__ == '__main__':
-  d_b = DatabaseConnector()
-  yaml_creds = d_b.read_db_creds("db_creds.yaml")
-  engine = d_b.init_db_engine(yaml_creds)
-  d_b.list_db_tables(engine)
