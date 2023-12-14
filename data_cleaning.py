@@ -4,7 +4,26 @@ import pandas as pd
 class DataCleaning:
   '''
   Clean the data from the sources imported from the DataExtractor class
-  
+  Several cleaning functions specific to the data class
+  One conversion function to change the product weights
+
+  Methods:
+  -------
+  clean_user_data: dataframe
+    Cleans the data that comes from the DataExtraction read_rds_table method
+  clean_card_data: dataframe
+    Clean the card user data imported from pdf DataExtraction retrieve_pdf_data
+  clean_store_data: dataframe
+    Cleans the data from the DataExtraction retrieve_stores_data method
+  convert_product_weights: dataframe
+    Convert the product weights to kg from g, oz, and ml in the products_data dataframe
+  clean_products_data: dataframe
+    Cleans the data that comes from the DataExtraction extract_from_s3 method
+  clean_orders_data: dataframe
+     Cleans the data that comes from the DataExtraction retrieve_stores_data method
+  clean_date_events_data: dataframe
+    Cleans the data from the DataExtraction retrieve_date_events_data method
+
   '''
   def clean_user_data(self, db_df):
     '''
@@ -20,10 +39,9 @@ class DataCleaning:
     ----------
     db_df: Pandas DataFrame
       The DataFrame to be cleaned
-
     '''
     #db_df.dropna(axis=0, inplace=True)
-    print("Starting Data Cleaning: \n")
+    print("Starting User Data Cleaning: \n")
     print(db_df.info())
 
     # Look at a summary of all the data table columns
@@ -72,10 +90,6 @@ class DataCleaning:
     print(db_df['date_of_birth'].value_counts())
     print(db_df['join_date'].value_counts())
 
-    #db_df.loc[db_df['phone_number'].str.match(regex_number), 'error'] = np.nan
-    #db_df.loc[~db_df['phone_number'].str.match(regex_phone), 'error'] = np.nan # For every row  where the Phone column does not match our regular expression, replace the value with NaN
-    #db_df.loc[~db_df['country_code'].str.match(regex_cc), 'error'] = np.nan # For every row  where the Phone column does not match our regular expression, replace the value with NaN
-
     for name, values in db_df.items():
       print(db_df[name].value_counts())
     print("\nEND\n")
@@ -84,112 +98,125 @@ class DataCleaning:
   def clean_card_data(self, df):
     '''
     Clean the card user data imported from pdf
+    Move the values in the wrong columns to the correct ones
+    Remove columns wihout useful data
+    Remove strings which aren't useful
     '''
     print("Starting Card Data Cleaning: \n")
-  
-    # Concatenate the list of DataFrames
-   
-    print(df.size)
-    df.info()
-    print(df.head(5))
-    
+ 
+    # Move values to correct columns    
+    mask = df["card_number expiry_date"].notna()
+
+    df.loc[mask, "card_number"]  = df.loc[mask, "card_number expiry_date"].apply(lambda x: x.split(' ')[0])
+    df.loc[mask, "expiry_date"]  = df.loc[mask, "card_number expiry_date"].apply(lambda x: x.split(' ')[1])
+
+    # Remove all rows with the string "NULL" in them 
+    filter_null = "NULL"
+    df_filter = df['date_payment_confirmed'].str.contains(filter_null)
+    df = df[~df_filter]
+
     # Drop columns which weren't read correctly
-    print(df["card_number expiry_date"])
+    print("Removing:", 'df["card_number expiry_date"]')
     df.drop("card_number expiry_date",axis=1, inplace=True)
     
-    print(df["Unnamed: 0"])
+    print("Removing:", 'df["Unnamed: 0"]')
     df.drop("Unnamed: 0",axis=1, inplace=True)
     
-    # Remove all rows with the string "NULL" in them 
-    print(df[df["card_provider"] == "NULL"])
-    df.drop(index=df[df['card_provider'].str.contains('NULL')].index, inplace=True) 
-    
-    # Replace rows which contain card providers which aren't a name
-    regex_cc = '[A-Z0-9]{6,}'    
-    print(df.loc[df['card_provider'].str.match(regex_cc)])
-    df.drop(index=df[df['card_provider'].str.match(regex_cc)].index, inplace=True) 
-    df['expiry_date'].value_counts(dropna=False)
+    # Removing columns with strings like 7FL8EU9GBF
+    regex_str = '[0-9A-Z]{8,}'
+    df.loc[df['date_payment_confirmed'].str.match(regex_str)]
+    df_filter = df['date_payment_confirmed'].str.contains(regex_str)
+    df = df[~df_filter]
    
-    # Set the type
-    df['date_payment_confirmed'] = pd.to_datetime(df['date_payment_confirmed'],format='mixed')
-    df.info()
-    df.head()
-    df[df["expiry_date"].isnull()]
-    df.dropna(inplace=True)
-    df.info()
-    # Change to a numeric type 
-    df['card_number'] = pd.to_numeric(df['card_number'], errors="coerce", downcast="integer")
-    #df[df["card_number"] < 1e10]
-    # Drop the NaN values
-    df.dropna(inplace=True)
+    # Set the type of the 'date_payment_confirmed' column
+    df["date_payment_confirmed"] = df["date_payment_confirmed"].apply(pd.to_datetime, format='mixed', yearfirst=True)
+
+    # Get the card numbers which have ? at the front 
+    # Change to string otherwise NaN is returned
+    df["card_number"] = df["card_number"].astype(str)
+    df["card_number"] = df["card_number"].str.extract('(\d+)').astype(str)
 
     df.info()
 
-  def called_clean_store_data(self, api_df):
+  def clean_store_data(self, api_df):
     '''
     Cleans the data from the DataExtraction retrieve_stores_data method
     '''
     print("Cleaning data from retrieve_stores_data method")
-    print(api_df.info())
-    print(api_df["lat"][api_df["lat"].notnull()])
+    #print(api_df.info())
+    #print(api_df["lat"][api_df["lat"].notnull()])
     api_df.drop("lat",axis=1, inplace=True)
 
+    #Remove rows with strange strings for data
     regex_cc = '[A-Z0-9]{4,}'
     print(api_df.loc[api_df['country_code'].str.match(regex_cc)])
-    api_df.drop(index=api_df[api_df['country_code'].str.match(regex_cc)].index, inplace=True)
-    
+    df_filter = api_df['country_code'].str.match(regex_cc)
+    api_df = api_df[~df_filter]
+
+    # Replace staff numbers with digits
+    api_df['staff_numbers'] = api_df['staff_numbers'].str.replace('\D+', '',regex=True)
+
+    # Replace strings
     api_df['continent'].replace("eeEurope", "Europe", inplace=True)
     api_df['continent'].replace("eeAmerica", "America", inplace=True)
 
-    api_df['opening_date'] = pd.to_datetime(api_df['opening_date'],format='mixed')
-    print(api_df["opening_date"].value_counts().to_string())
+    # Change to datetime format
+    api_df['opening_date'] = api_df['opening_date'].apply(pd.to_datetime, format='mixed', yearfirst=True)
+    #api_df['opening_date'] = pd.to_datetime(api_df['opening_date'],format='mixed')
+    #print(api_df["opening_date"].value_counts().to_string())
     api_df.info()
 
     return api_df
 
   def convert_product_weights(self, df):
     '''
-    Convert the product weights to kg 
+    Convert the product weights to kg from g, oz, and ml
     removes the n times of the product weight
     '''
     df.dropna(inplace=True)
-    df_weight = df["weight"].str.extract(r'[\dx .]*?([\d.]+)([kgmloz]+$)')
+    #df_weight = df["weight"].str.extract(r'[\dx .]*?([\d.]+)([kgmloz]+$)')
+    df_weight = df["weight"].str.extract(r'[\dx .]*?([\d.]+)([kgmloz]+).*')
     units = {'g': 1e-3, 'oz': 0.0283495, 'ml': 1e-3, 'kg': 1}
     #df_weight[1].str.lower().map(units)
     df_weight[0] = pd.to_numeric(df_weight[0])
     df_weight[0] *= df_weight[1].str.lower().map(units)
     df["weight"] = df_weight[0]
     df.rename(columns={'weight':"weight_kg"}, inplace=True)
-    df.dropna(inplace=True)
+    #df.dropna(inplace=True)
 
-
-  def clean_products_data(self,df):
+  def clean_products_data(self, df):
     '''
     Clean the products data
     ''' 
-    df.drop(index=df[df['category'].str.match(r'[0-9A-Z]+')].index, inplace=True)
+    regex_str = '[0-9A-Z]+'
+    df_filter = df['category'].str.contains(regex_str)
+    df[df['category'].str.contains(regex_str)]
+    #df.drop(index=df[df['category'].str.match(r'[0-9A-Z]+')].index, inplace=True)
     df["removed"] = df["removed"].replace("Still_avaliable", "Still_available")
     # Convert to datetime format
-    df["date_added"] = pd.to_datetime(df['date_added'],format='mixed')  
+    df["date_added"] = df["date_added"].apply(pd.to_datetime, format='mixed', yearfirst=True)
     # Floating point arithmetic issue some values get additional digits
     # 1.65 goes to 1.6500000000000001
 
   def clean_orders_data(self, db_df):
     '''
-    Clean the orders 
+    Clean the orders data from 
+      Remove columns without data
     '''
     db_df.drop("first_name",axis=1, inplace=True)
     db_df.drop("last_name",axis=1, inplace=True)
     db_df.drop("1",axis=1, inplace=True)
     # Error if not removed
     db_df.drop("level_0",axis=1, inplace=True)
-    return db_df
+    #return db_df
   
   def clean_date_events_data(self, df):
     '''
     Clean date events data
+
     '''
     df.drop(index=df[df['time_period'].str.contains('NULL')].index, inplace=True) 
     regex_cc = '[A-Z0-9]{6,}' 
     df.drop(index=df[df['time_period'].str.match(regex_cc)].index, inplace=True) 
+    #return df
   
