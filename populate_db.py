@@ -16,6 +16,7 @@ if __name__ == '__main__':
   db_conn = du.DatabaseConnector()
   d_ext = dx.DataExtractor()
 
+
   yaml_creds = db_conn.read_db_creds("db_creds.yaml")
   db_engine = db_conn.init_db_engine(yaml_creds)
 
@@ -59,7 +60,6 @@ if __name__ == '__main__':
   def get_orders_data():
     table_list = db_conn.list_db_tables(db_engine)
     db_df = d_ext.read_rds_table(db_conn, table_list[2])
-    print("Cleaning Data")
     d_clean.clean_orders_data(db_df)
     db_conn.upload_to_db(db_df, "orders_table", local_db_engine)
 
